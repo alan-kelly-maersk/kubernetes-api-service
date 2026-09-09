@@ -1,0 +1,44 @@
+---
+# Lets the aggregated server delegate authorization decisions (SubjectAccessReview)
+# to the core Kubernetes API server instead of implementing its own RBAC engine.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: widgets-apiserver-auth-delegator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: widgets-apiserver
+    namespace: widgets-system
+---
+# Lets the aggregated server read the extension-apiserver-authentication
+# ConfigMap in kube-system (client CA + requestheader config) so it can
+# authenticate requests forwarded to it by the core API server.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: widgets-apiserver-authentication-reader
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: extension-apiserver-authentication-reader
+subjects:
+  - kind: ServiceAccount
+    name: widgets-apiserver
+    namespace: widgets-system
+---
+# Example: grants cluster admins full access to the new resource type.
+# RBAC for widgets.example.com works exactly like RBAC for any built-in
+# resource - grant/bind additional ClusterRoles per your access model.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: widgets-admin
+rules:
+  - apiGroups: ["widgets.example.com"]
+    resources: ["widgets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

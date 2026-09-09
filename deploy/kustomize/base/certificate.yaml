@@ -1,0 +1,47 @@
+# Requires cert-manager (https://cert-manager.io) installed in the cluster.
+# This mints a private CA for this service, then a serving cert signed by
+# that CA. The APIService's caBundle is auto-populated by cert-manager's
+# CA injector via the annotation on apiservice.yaml - no manual cert copying.
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: widgets-selfsigned-issuer
+  namespace: widgets-system
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: widgets-apiserver-ca
+  namespace: widgets-system
+spec:
+  isCA: true
+  commonName: widgets-apiserver-ca
+  secretName: widgets-apiserver-ca
+  issuerRef:
+    name: widgets-selfsigned-issuer
+    kind: Issuer
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: widgets-apiserver-ca-issuer
+  namespace: widgets-system
+spec:
+  ca:
+    secretName: widgets-apiserver-ca
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: widgets-apiserver-tls
+  namespace: widgets-system
+spec:
+  secretName: widgets-apiserver-tls
+  dnsNames:
+    - widgets-apiserver.widgets-system.svc
+    - widgets-apiserver.widgets-system.svc.cluster.local
+  issuerRef:
+    name: widgets-apiserver-ca-issuer
+    kind: Issuer

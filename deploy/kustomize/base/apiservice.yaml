@@ -1,0 +1,21 @@
+# This is the object that actually registers the API group/version with
+# the Kubernetes control plane: it tells kube-apiserver "requests for
+# widgets.example.com/v1alpha1 should be proxied to this Service".
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1alpha1.widgets.example.com
+  annotations:
+    # cert-manager's CA injector fills in `spec.caBundle` from this Certificate's
+    # CA secret - remove this annotation and set caBundle manually if you are
+    # not using cert-manager.
+    cert-manager.io/inject-ca-from: widgets-system/widgets-apiserver-ca
+spec:
+  group: widgets.example.com
+  version: v1alpha1
+  service:
+    name: widgets-apiserver
+    namespace: widgets-system
+    port: 443
+  groupPriorityMinimum: 1000
+  versionPriority: 15

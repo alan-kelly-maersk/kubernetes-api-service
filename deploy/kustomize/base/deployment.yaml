@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: widgets-apiserver
+  namespace: widgets-system
+  labels:
+    app: widgets-apiserver
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: widgets-apiserver
+  template:
+    metadata:
+      labels:
+        app: widgets-apiserver
+    spec:
+      serviceAccountName: widgets-apiserver
+      containers:
+        - name: apiserver
+          # Replace with your built/pushed image; see README "Build and push the image".
+          image: REPLACE_ME/widgets-apiserver:latest
+          args:
+            - --secure-port=6443
+            - --tls-cert-file=/var/run/apiserver/tls/tls.crt
+            - --tls-private-key-file=/var/run/apiserver/tls/tls.key
+          env:
+            - name: POSTGRES_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: widgets-postgres-credentials
+                  key: dsn
+          ports:
+            - containerPort: 6443
+              name: https
+          volumeMounts:
+            - name: serving-cert
+              mountPath: /var/run/apiserver/tls
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 6443
+              scheme: HTTPS
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 6443
+              scheme: HTTPS
+      volumes:
+        - name: serving-cert
+          # Populated by the cert-manager Certificate in certificate.yaml.
+          secret:
+            secretName: widgets-apiserver-tls
